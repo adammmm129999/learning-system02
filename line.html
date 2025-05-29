@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>課程一：LINE 教學操作</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+    .navbar {
+      background-color: #4a90e2;
+      padding: 16px;
+      text-align: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 20px;
+    }
+    .navbar button {
+      font-size: 16px;
+      margin-left: 12px;
+      cursor: pointer;
+      background-color: #2575fc;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+    .main-panel {
+  display: flex;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  height: calc(100vh - 100px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.embed-frame:nth-child(1),
+.embed-frame:nth-child(2) {
+  flex: 1;
+}
+
+.embed-frame iframe,
+.embed-frame video {
+  height: 100%;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  object-fit: contain;
+  display: block;
+}
+
+  </style>
+</head>
+<body>
+  <!-- 導覽列 -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="home.html">🏠 首頁</a>
+      <a href="course.html">📘 課程教學</a>
+      <a href="discussion.html">💬 討論區</a>    
+      <a href="personal_account.html">個人資料📄</a>
+      <button id="logoutBtn">登出</button>
+    </div>
+  </nav>
+  
+  <div class="main-panel">
+    <!-- LINE 教學 DiVE -->
+    <div class="embed-frame">
+      <iframe name="dive" src="https://dive.nutn.edu.tw/Experiment/kaleTestExperiment5.jsp?eid=33300&record=false"></iframe>
+    </div>
+
+    <!-- YouTube 影片 -->
+    <div class="embed-frame">
+      <video src="teach1.mp4" controls allowfullscreen></video>
+    </div>
+  </div>
+
+  <script src="https://dive.nutn.edu.tw/Experiment/js/dive.linker.min.js"></script>
+
+  <!-- Firebase SDK (modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0VF7SkuXvOAJyuC-2tPl_KGris3f4gqE",
+      authDomain: "final-project-fb104.firebaseapp.com",
+      projectId: "final-project-fb104",
+      appId: "1:150740541108:web:1a0dba9ebb4cbb157001e1",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.addEventListener("load", () => {
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      // 登出按鈕事件
+      logoutBtn.addEventListener("click", () => {
+        signOut(auth)
+          .then(() => {
+            alert("已登出");
+            window.location.href = "index.html";
+          })
+          .catch((error) => {
+            alert("登出錯誤：" + error.message);
+          });
+      });
+
+      // 監聽登入狀態
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          alert("請先登入");
+          window.location.href = "login.html";
+          return;
+        }
+
+        // 啟動 DiVE 監聽並傳入 user
+        startDiveListener(user);
+      });
+    });
+
+    // 監聽 DiVE 完成度並更新 localStorage
+    function startDiveListener(user) {
+      const diveLinker = new DiveLinker("dive");
+      diveLinker.enableBlock(false);
+      diveLinker.start();
+
+      const completeId = "af797b267579490f82a94127cc5edbb5";
+
+      setInterval(() => {
+        const outputList = diveLinker.outputList;
+        if (outputList && outputList[completeId]) {
+          const value = outputList[completeId].value;
+          console.log("DiVE 完成度:", value);
+          if (value === 1) {
+            // 全局標記
+            localStorage.setItem("course1_completed", "true");
+            // 使用者專屬標記
+            localStorage.setItem(user.uid + "_course1", "true");
+
+            console.log("課程 course1 進度已更新至 localStorage");
+          }
+        }
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

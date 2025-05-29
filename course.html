@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>手機教學課程</title>
+  <style>
+    /* 你的 CSS 保持不變 */
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+    .navbar {
+      background-color: #4a90e2;
+      padding: 16px;
+      text-align: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 20px;
+    }
+    h1 {
+      text-align: center;
+      padding: 30px 10px 10px;
+      font-size: 32px;
+      color: #1a237e;
+    }
+    .main {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .left,
+    .right {
+      box-sizing: border-box;
+      padding: 20px;
+    }
+    .left {
+      flex: 1 1 50%;
+    }
+    .right {
+      flex: 1 1 50%;
+      background-color: #f0f4ff;
+      border-radius: 12px;
+    }
+    .course-card {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      padding: 20px;
+      text-align: center;
+    }
+    .course-card img {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    .course-card h2 {
+      font-size: 24px;
+      color: #1a237e;
+      margin: 10px 0;
+    }
+    .course-card p {
+      font-size: 18px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      margin-top: 10px;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background-color: #357abd;
+    }
+    .btn.locked {
+      background-color: #ccc;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+    .progress-area h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #ddd;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 30px;
+      margin-bottom: 10px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #4a90e2;
+      text-align: center;
+      color: white;
+      line-height: 30px;
+      font-weight: bold;
+    }
+    .badges img {
+      margin: 10px;
+      width: 80px;
+      filter: grayscale(100%);
+      transition: filter 0.5s ease;
+    }
+    .badges img.unlocked {
+      filter: none;
+    }
+    @media (max-width: 900px) {
+      .left,
+      .right {
+        flex: 1 1 100%;
+      }
+    }
+    .background-section {
+      background-image: url('背景.png'); /* 你的背景圖片路徑 */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      color: white;
+      position: relative;
+      z-index: 0;
+    }
+    .background-section::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+    .background-section h1 {
+      color: white;
+      font-size: 36px;
+      text-align: center;
+      margin-bottom: 40px;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+    }
+    .background-section .main {
+      color: white;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="home.html">🏠 首頁</a>
+      <a href="course.html">📘 課程教學</a>
+      <a href="discussion.html">💬 討論區</a>    
+      <a href="personal_account.html">個人資料📄</a>
+      <button id="logoutBtn" style="font-size:18px; margin-left:15px;">登出</button>
+    </div>
+  </nav>
+
+  <section class="background-section">
+    
+    <div class="main">
+      <div class="left">
+        <div class="course-card" data-course="1">
+          <img src="line.png" alt="LINE" />
+          <h2>課程一：LINE教學</h2>
+          <p>教你如何用LINE的視訊分享畫面。</p>
+          <a class="btn" id="btn-course1" href="#">讀取中...</a>
+        </div>
+        <div class="course-card" data-course="2">
+          <img src="wifi.png" alt="WIFI" />
+          <h2>課程二：WIFI與行網教學</h2>
+          <p>教你如何連接WIFI與利用行動網路上網。</p>
+          <a class="btn locked" id="btn-course2" href="#">尚未解鎖</a>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="progress-area">
+          <h2>📈 你的學習進度</h2>
+          <div class="progress-bar">
+            <div class="progress-bar-fill" id="progress-fill">0%</div>
+          </div>
+          <p id="progress-text">你已完成 0 / 2 的課程，加油！</p>
+
+          <div class="badges">
+            <h3>🎖️ 成就徽章</h3>
+            <img src="徽章1.PNG" alt="徽章1" id="badge-1" />
+            <img src="徽章3.PNG" alt="徽章2" id="badge-2" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+    // TODO: 用你自己的 Firebase config
+    const firebaseConfig = {
+       apiKey: "AIzaSyC0VF7SkuXvOAJyuC-2tPl_KGris3f4gqE",
+  authDomain: "final-project-fb104.firebaseapp.com",
+  projectId: "final-project-fb104",
+  storageBucket: "final-project-fb104.appspot.com",
+  messagingSenderId: "150740541108",
+  appId: "1:150740541108:web:1a0dba9ebb4cbb157001e1",
+  measurementId: "G-XRR8QBXS35"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const btn1 = document.getElementById('btn-course1');
+    const btn2 = document.getElementById('btn-course2');
+    const badge1 = document.getElementById('badge-1');
+    const badge2 = document.getElementById('badge-2');
+    const fill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // 用 localStorage key 格式，userId_course1、userId_course2
+    function getCourseProgress(userId, course) {
+      return localStorage.getItem(userId + "_course" + course) === "true";
+    }
+
+    function updateUI(userId) {
+      const completed1 = getCourseProgress(userId, 1);
+      const completed2 = getCourseProgress(userId, 2);
+
+      // 課程一按鈕狀態
+      if (completed1) {
+        btn1.classList.remove("locked");
+        btn1.href = "line.html";
+        btn1.textContent = "開始學習";
+        badge1.classList.add("unlocked");
+      } else {
+        btn1.classList.remove("locked");
+        btn1.href = "line.html";
+        btn1.textContent = "開始學習";
+        badge1.classList.remove("unlocked");
+      }
+
+      // 課程二解鎖條件：完成課程一
+      if (completed1) {
+        btn2.classList.remove("locked");
+        btn2.href = "wifi.html";
+        btn2.textContent = "開始學習";
+        if (completed2) {
+          badge2.classList.add("unlocked");
+        } else {
+          badge2.classList.remove("unlocked");
+        }
+      } else {
+        btn2.classList.add("locked");
+        btn2.href = "#";
+        btn2.textContent = "尚未解鎖";
+        badge2.classList.remove("unlocked");
+      }
+
+      const completedCount = (completed1 ? 1 : 0) + (completed2 ? 1 : 0);
+      const percent = Math.round((completedCount / 2) * 100);
+      fill.style.width = percent + "%";
+      fill.textContent = percent + "%";
+      progressText.textContent = `你已完成 ${completedCount} / 2 的課程，加油！`;
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      updateUI(user.uid);
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth).then(() => {
+        window.location.href = 'index.html';
+      });
+    });
+  </script>
+</body>
+</html>

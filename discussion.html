@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>討論區（長者友善版）</title>
+  <style>
+    /* ...（保持你原本的 CSS）... */
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+    .navbar {
+      background-color: #4a90e2;
+      padding: 16px;
+      text-align: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 20px;
+    }
+    .comment {
+      background-color: #fff;
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 15px;
+      position: relative;
+    }
+    .reply {
+      margin-left: 40px;
+      border-left: 4px solid #aaccee;
+      padding-left: 15px;
+      margin-top: 10px;
+      position: relative;
+    }
+    .comment b, .reply b {
+      color: #006699;
+      font-size: 22px;
+    }
+    textarea {
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #999;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      height: 100px;
+      resize: none;
+    }
+    button {
+      font-size: 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+      padding: 6px 12px;
+      margin-top: 8px;
+      border-radius: 6px;
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .instruction {
+      font-size: 18px;
+      color: #555;
+      text-align: center;
+    }
+    .reply-input {
+      margin-top: 10px;
+    }
+    .reply-textarea {
+      height: 70px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="home.html">🏠 首頁</a>
+    <a href="course.html">📘 課程教學</a>
+    <a href="discussion.html">💬 討論區</a>    
+    <a href="personal_account.html">個人資料📄</a>
+  </nav>
+
+  <h1>留言討論區</h1>
+  <p class="instruction">請輸入您的留言，或回覆他人的留言。</p>
+
+  <div id="commentSection">載入留言中...</div>
+
+  <h2>新增留言</h2>
+  <textarea id="newComment" placeholder="在此輸入您的留言內容..."></textarea><br>
+  <button id="postBtn">送出留言</button>
+
+  <script type="module">
+    import { auth, onAuthStateChanged } from './firebase-init.js';
+    import {
+      getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, getDocs
+    } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+    const db = getFirestore();
+    const commentSection = document.getElementById("commentSection");
+    const newComment = document.getElementById("newComment");
+    const postBtn = document.getElementById("postBtn");
+
+    let currentUser = null;
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+    }
+
+    // 渲染一則回覆
+    function renderReply(replyData, replyId, container, commentId) {
+      const div = document.createElement("div");
+      div.className = "reply";
+
+      // 轉換時間
+      const timeStr = replyData.timestamp?.toDate ? new Date(replyData.timestamp.toDate()).toLocaleString() : '';
+
+      div.innerHTML = `
+        <p><b>${escapeHtml(replyData.username)}</b> 回覆：</p>
+        <p>${escapeHtml(replyData.content)}</p>
+        <small>${timeStr}</small>
+      `;
+
+      // 自己的回覆可以刪除
+      if (replyData.userId === currentUser.uid) {
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "刪除回覆";
+        delBtn.onclick = async () => {
+          if (confirm("確定要刪除這則回覆嗎？")) {
+            try {
+              await deleteDoc(doc(db, "comments", commentId, "replies", replyId));
+            } catch (error) {
+              alert("刪除失敗：" + error.message);
+            }
+          }
+        };
+        div.appendChild(delBtn);
+      }
+
+      container.appendChild(div);
+    }
+
+    // 渲染一則留言，並監聽回覆變化
+    function renderComment(docData, docId) {
+      const div = document.createElement("div");
+      div.className = "comment";
+      div.dataset.id = docId;
+
+      const timeStr = docData.timestamp?.toDate ? new Date(docData.timestamp.toDate()).toLocaleString() : '';
+
+      div.innerHTML = `
+        <p><b>${escapeHtml(docData.username)}</b> 說：</p>
+        <p>${escapeHtml(docData.content)}</p>
+        <small>${timeStr}</small>
+      `;
+
+      // 留言擁有者可刪除留言（同時會刪除回覆）
+      if (docData.userId === currentUser.uid) {
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "刪除留言";
+        delBtn.onclick = async () => {
+          if (confirm("確定要刪除這則留言嗎？連同所有回覆將一併刪除。")) {
+            try {
+              // 先刪除所有回覆
+              const repliesSnapshot = await getDocs(collection(db, "comments", docId, "replies"));
+              for (const replyDoc of repliesSnapshot.docs) {
+                await deleteDoc(doc(db, "comments", docId, "replies", replyDoc.id));
+              }
+              // 刪除留言
+              await deleteDoc(doc(db, "comments", docId));
+            } catch (error) {
+              alert("刪除失敗：" + error.message);
+            }
+          }
+        };
+        div.appendChild(delBtn);
+      }
+
+      // 回覆容器
+      const repliesContainer = document.createElement("div");
+      repliesContainer.className = "replies-container";
+      div.appendChild(repliesContainer);
+
+      // 回覆輸入區
+      const replyInputDiv = document.createElement("div");
+      replyInputDiv.className = "reply-input";
+      replyInputDiv.innerHTML = `
+        <textarea class="reply-textarea" placeholder="輸入回覆內容..."></textarea><br>
+        <button class="reply-btn">送出回覆</button>
+      `;
+      div.appendChild(replyInputDiv);
+
+      // 回覆按鈕事件
+      const replyBtn = replyInputDiv.querySelector(".reply-btn");
+      const replyTextarea = replyInputDiv.querySelector("textarea");
+
+      replyBtn.onclick = async () => {
+        const replyContent = replyTextarea.value.trim();
+        if (!replyContent) {
+          alert("請輸入回覆內容");
+          return;
+        }
+        replyBtn.disabled = true;
+        try {
+          await addDoc(collection(db, "comments", docId, "replies"), {
+            content: replyContent,
+            userId: currentUser.uid,
+            username: currentUser.email,
+            timestamp: serverTimestamp()
+          });
+          replyTextarea.value = "";
+        } catch (error) {
+          alert("回覆失敗：" + error.message);
+        }
+        replyBtn.disabled = false;
+      };
+
+      // 監聽該留言回覆子集合
+      const repliesQuery = query(collection(db, "comments", docId, "replies"), orderBy("timestamp", "asc"));
+      onSnapshot(repliesQuery, snapshot => {
+        repliesContainer.innerHTML = "";
+        snapshot.forEach(replyDoc => {
+          renderReply(replyDoc.data(), replyDoc.id, repliesContainer, docId);
+        });
+      });
+
+      commentSection.appendChild(div);
+    }
+
+    // 監聽並渲染留言列表
+    function loadComments() {
+      commentSection.innerHTML = "載入留言中...";
+      const q = query(collection(db, "comments"), orderBy("timestamp", "desc"));
+      onSnapshot(q, snapshot => {
+        commentSection.innerHTML = "";
+        if (snapshot.empty) {
+          commentSection.innerHTML = "<p>目前還沒有留言，歡迎搶先留言！</p>";
+          return;
+        }
+        snapshot.forEach(doc => {
+          renderComment(doc.data(), doc.id);
+        });
+      }, error => {
+        commentSection.innerHTML = "<p>留言載入失敗，請稍後再試。</p>";
+        console.error("Firestore 監聽錯誤:", error);
+      });
+    }
+
+    async function postComment() {
+      const content = newComment.value.trim();
+      if (!content) {
+        alert("請輸入留言內容");
+        return;
+      }
+      postBtn.disabled = true;
+      try {
+        await addDoc(collection(db, "comments"), {
+          content,
+          userId: currentUser.uid,
+          username: currentUser.email,
+          timestamp: serverTimestamp()
+        });
+        newComment.value = "";
+      } catch (error) {
+        alert("留言失敗：" + error.message);
+      }
+      postBtn.disabled = false;
+    }
+
+    // 監聽登入狀態
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        loadComments();
+        postBtn.onclick = postComment;
+      } else {
+        alert("請先登入！");
+        window.location.href = "index.html";
+      }
+    });
+  </script>
+</body>
+</html>

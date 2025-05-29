@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>修改個人資料</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+
+    /* 導覽列維持原本設定 */
+.navbar {
+  background-color: #4a90e2;
+  padding: 16px;
+  text-align: center;
+  z-index: 10;
+}
+
+/* 導覽列文字顏色 */
+.navbar a {
+  color: white;
+  text-decoration: none;
+  margin: 0 12px;
+  font-size: 20px;
+}
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      color: #333;
+      font-weight: bold;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 18px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      margin-top: 25px;
+      border-radius: 6px;
+    }
+    .avatar-preview {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .avatar-preview img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid #007bff;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="home.html">🏠 首頁</a>
+      <a href="course.html">📘 課程教學</a>
+      <a href="discussion.html">💬 討論區</a>    
+      <a href="personal_account.html">個人資料📄</a>
+      
+    </div>
+  </nav>
+  <h1>修改個人資料</h1>
+
+  <form id="accountForm">
+    <label for="name">姓名</label>
+    <input type="text" id="name" required>
+
+    <label for="email">電子郵件</label>
+    <input type="email" id="email" required>
+
+    <label for="phone">電話</label>
+    <input type="tel" id="phone">
+
+    <label for="avatar">上傳頭像</label>
+    <input type="file" id="avatar" accept="image/*">
+
+    <div class="avatar-preview" id="avatarPreview"></div>
+
+    <button type="submit">儲存修改</button>
+  </form>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updateEmail } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-storage.js";
+
+    // ✅ 請換成你自己的 Firebase 設定
+    const firebaseConfig = {
+ apiKey: "AIzaSyC0VF7SkuXvOAJyuC-2tPl_KGris3f4gqE",
+  authDomain: "final-project-fb104.firebaseapp.com",
+  projectId: "final-project-fb104",
+  storageBucket: "final-project-fb104.appspot.com",
+  messagingSenderId: "150740541108",
+  appId: "1:150740541108:web:1a0dba9ebb4cbb157001e1",
+  measurementId: "G-XRR8QBXS35"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore();
+    const storage = getStorage();
+
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('phone');
+    const avatarInput = document.getElementById('avatar');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const form = document.getElementById('accountForm');
+
+    let currentUser = null;
+    let avatarFile = null;
+    let avatarPath = null;
+
+    // 預覽頭像
+    avatarInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) {
+        avatarFile = null;
+        avatarPreview.innerHTML = "";
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        alert("請選擇圖片檔案");
+        avatarInput.value = "";
+        return;
+      }
+
+      avatarFile = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        avatarPreview.innerHTML = `<img src="${e.target.result}" alt="預覽圖">`;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 讀取用戶資料
+    async function loadUserData(uid) {
+      try {
+        const docSnap = await getDoc(doc(db, "users", uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          nameInput.value = data.name || "";
+          phoneInput.value = data.phone || "";
+          if (data.avatarPath) {
+            const url = await getDownloadURL(ref(storage, data.avatarPath));
+            avatarPreview.innerHTML = `<img src="${url}" alt="頭像">`;
+            avatarPath = data.avatarPath;
+          }
+        }
+        emailInput.value = auth.currentUser.email || "";
+      } catch (err) {
+        alert("讀取資料失敗：" + err.message);
+      }
+    }
+
+    // 儲存修改
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      if (!currentUser) return alert("請先登入");
+
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+      const phone = phoneInput.value.trim();
+
+      try {
+        if (email !== currentUser.email) {
+          await updateEmail(currentUser, email);
+        }
+      } catch (err) {
+        return alert("更新 Email 失敗：" + err.message);
+      }
+
+      let newAvatarPath = avatarPath;
+      if (avatarFile) {
+        const fileRef = ref(storage, `avatars/${currentUser.uid}/${avatarFile.name}`);
+        await uploadBytes(fileRef, avatarFile);
+        newAvatarPath = fileRef.fullPath;
+      }
+
+      try {
+        await setDoc(doc(db, "users", currentUser.uid), {
+          name,
+          phone,
+          avatarPath: newAvatarPath,
+          updatedAt: new Date()
+        }, { merge: true });
+
+        alert("更新成功！");
+      } catch (err) {
+        alert("儲存資料失敗：" + err.message);
+      }
+    });
+
+    // 監聽登入狀態
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        loadUserData(user.uid);
+      } else {
+        alert("請先登入！");
+        window.location.href = "index.html";
+      }
+    });
+  </script>
+</body>
+</html>

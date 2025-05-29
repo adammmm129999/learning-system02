@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>首頁 - 長者數位素養學習系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* === 全域設定 === */
+ body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+
+    /* 導覽列維持原本設定 */
+.navbar {
+  background-color: #4a90e2;
+  padding: 16px;
+  text-align: center;
+  z-index: 10;
+}
+
+/* 導覽列文字顏色 */
+.navbar a {
+  color: white;
+  text-decoration: none;
+  margin: 0 12px;
+  font-size: 20px;
+}
+
+/* 標題區 + 下面背景區 */
+.background-section {
+  position: relative;
+  background-image: url('背景.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+  min-height: 90vh;  /* 可調整高度 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  box-sizing: border-box;
+}
+
+/* 半透明遮罩，讓文字更清楚 */
+.background-section::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.3);  /* 透明度可調 */
+  z-index: 1;
+}
+
+/* 文字層覆蓋遮罩 */
+.background-section > * {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+/* 標題文字大小 */
+.background-section h1 {
+  font-size: 40px;
+  margin: 0;
+}
+
+/* 隱藏 icon-grid */
+.icon-grid {
+  display: none;
+}
+
+    /* === AI 助理按鈕 === */
+    #chat-button {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 9999;
+    }
+
+    #chat-button:hover {
+      background-color: #45a049;
+    }
+.background-image-section {
+  height: 300px; /* 你可調整高度 */
+  background-image: url('背景.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.5; /* 透明度，可調整 */
+  margin: 20px;
+  border-radius: 12px;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- 導覽列 -->
+   <nav class="navbar">
+    <div class="container">
+      <a href="home.html">🏠 首頁</a>
+      <a href="course.html">📘 課程教學</a>
+      <a href="discussion.html">💬 討論區</a>    
+      <a href="personal_account.html">個人資料📄</a>
+      <button id="logoutBtn">🔓 登出</button>
+    </div>
+  </nav>
+
+  <!-- 標題區 -->
+<section class="background-section">
+  <header class="main-header">
+   
+  </header>
+ 
+  <!-- AI 助理按鈕 -->
+  <button id="chat-button" title="點我問問題">💬</button>
+
+  <!-- Firebase 與功能腳本 -->
+ <script type="module">
+  import { auth, onAuthStateChanged, signOut } from './firebase-init.js';
+
+  // 監聽登入狀態，沒登入導回登入頁
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      window.location.href = 'index.html'; // 或 login.html
+    }
+  });
+
+  // 登出按鈕事件
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      signOut(auth)
+        .then(() => {
+          window.location.href = 'index.html';  // 登出後回登入頁
+        })
+        .catch(error => {
+          console.error('登出失敗:', error);
+          alert('登出失敗，請稍後再試');
+        });
+    });
+  });
+</script>
+
+</body>
+</html>

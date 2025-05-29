@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>註冊帳號 - 銀髮E學院</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      color: #333;
+    }
+
+    .container {
+      background: #fff;
+      padding: 2.5rem 2rem 3rem 2rem;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 0.6s ease forwards;
+    }
+
+    h2 {
+      margin-bottom: 1.8rem;
+      font-weight: 700;
+      color: #4a4a4a;
+      font-size: 1.8rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.2rem;
+      border-radius: 8px;
+      border: 1.8px solid #ddd;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      outline-offset: 2px;
+      outline-color: transparent;
+    }
+
+    input:focus {
+      border-color: #2575fc;
+      outline-color: #2575fc;
+      background: #f0f6ff;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.9rem 0;
+      border: none;
+      border-radius: 10px;
+      background: #2575fc;
+      color: white;
+      font-size: 1.15rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 6px 14px rgba(37, 117, 252, 0.4);
+      margin-bottom: 1rem;
+    }
+
+    button:hover {
+      background-color: #1a54d6;
+      box-shadow: 0 8px 18px rgba(26, 84, 214, 0.5);
+    }
+
+    #message {
+      font-weight: 600;
+      min-height: 1.4rem;
+      margin-bottom: 1rem;
+      color: red;
+      user-select: none;
+    }
+
+    .link-button {
+      background: transparent;
+      color: #2575fc;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      text-decoration: underline;
+      transition: color 0.3s ease;
+    }
+
+    .link-button:hover {
+      color: #1a54d6;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 400px) {
+      .container {
+        padding: 2rem 1.5rem 2.5rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main" aria-label="註冊表單">
+    <h2>銀髮E學院註冊</h2>
+    <input type="email" id="email" placeholder="請輸入 Email" aria-label="電子郵件" autocomplete="email" />
+    <input type="password" id="password" placeholder="請輸入密碼（至少 6 碼）" aria-label="密碼" autocomplete="new-password" />
+    <button id="registerBtn" aria-label="註冊">註冊</button>
+    <button class="link-button" onclick="location.href='index.html'" aria-label="返回登入頁面">返回登入頁面</button>
+    <p id="message" aria-live="polite"></p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // 匯入 Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+    // Firebase 設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0VF7SkuXvOAJyuC-2tPl_KGris3f4gqE",
+      authDomain: "final-project-fb104.firebaseapp.com",
+      projectId: "final-project-fb104",
+      storageBucket: "final-project-fb104.appspot.com",
+      messagingSenderId: "150740541108",
+      appId: "1:150740541108:web:1a0dba9ebb4cbb157001e1",
+      measurementId: "G-XRR8QBXS35"
+    };
+
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // 註冊按鈕事件
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const message = document.getElementById('message');
+
+      if (!email || !password) {
+        message.style.color = 'red';
+        message.textContent = '請填寫完整資料。';
+        return;
+      }
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          message.style.color = 'green';
+          message.textContent = `註冊成功！歡迎 ${user.email}`;
+        })
+        .catch((error) => {
+          message.style.color = 'red';
+          if (error.code === 'auth/email-already-in-use') {
+            message.textContent = '這個 Email 已經註冊過了，請使用其他 Email。';
+          } else if (error.code === 'auth/invalid-email') {
+            message.textContent = 'Email 格式錯誤，請重新輸入。';
+          } else if (error.code === 'auth/weak-password') {
+            message.textContent = '密碼太弱，請至少使用 6 個字元以上。';
+          } else {
+            message.textContent = `註冊失敗：${error.message}`;
+          }
+        });
+    });
+  </script>
+</body>
+</html>

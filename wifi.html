@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>課程二：WiFi 教學操作</title>
+  <style>
+   body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      background-color: #fefefe;
+      color: #333;
+    }
+    .navbar {
+      background-color: #4a90e2;
+      padding: 16px;
+      text-align: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin: 0 12px;
+      font-size: 20px;
+    }
+    .navbar button {
+      font-size: 16px;
+      margin-left: 12px;
+      cursor: pointer;
+      background-color: #2575fc;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+    .main-panel {
+  display: flex;
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  height: calc(100vh - 100px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.embed-frame:nth-child(1),
+.embed-frame:nth-child(2) {
+  flex: 1;
+}
+
+.embed-frame iframe,
+.embed-frame video {
+  height: 100%;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  object-fit: contain;
+  display: block;
+}
+  </style>
+</head>
+<body>
+  <!-- 導覽列 -->
+  <nav class="navbar">
+    <a href="home.html">🏠 首頁</a>
+    <a href="course.html">📘 課程教學</a>
+    <a href="discussion.html">💬 討論區</a>    
+    <a href="personal_account.html">個人資料📄</a>
+  </nav>
+
+  <div class="main-panel">
+    <!-- DiVE iframe -->
+    <div class="embed-frame">
+      <iframe
+        name="dive"
+        src="https://dive.nutn.edu.tw/Experiment/kaleTestExperiment5.jsp?eid=33302&record=false"
+        title="DiVE 第二關實驗"
+        allowfullscreen
+      ></iframe>
+    </div>
+
+    <!-- 教學影片 -->
+    <div class="embed-frame">
+      <video src="teach2.mp4" controls></video>
+    </div>
+
+    <
+
+  <script src="https://dive.nutn.edu.tw/Experiment/js/dive.linker.min.js"></script>
+
+  <!-- Firebase 與主要邏輯 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    // Firebase 設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0VF7SkuXvOAJyuC-2tPl_KGris3f4gqE",
+      authDomain: "final-project-fb104.firebaseapp.com",
+      projectId: "final-project-fb104",
+      storageBucket: "final-project-fb104.appspot.com",
+      messagingSenderId: "150740541108",
+      appId: "1:150740541108:web:1a0dba9ebb4cbb157001e1",
+      measurementId: "G-XRR8QBXS35"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    
+
+    // 第二關完成 ID
+    const secondLevelCompleteId = "04b344e5adda446583d7e087a1d18026";
+
+    // 登出功能示範（假如你有 logout 按鈕，這裡可加入）
+    // const logoutBtn = document.getElementById("logoutBtn");
+    // if (logoutBtn) {
+    //   logoutBtn.addEventListener("click", () => {
+    //     signOut(auth).then(() => {
+    //       localStorage.clear();
+    //       alert("已登出");
+    //       window.location.href = "index.html";
+    //     }).catch(error => alert("登出錯誤：" + error.message));
+    //   });
+    // }
+
+    // 解鎖第二關按鈕
+    function unlockLevel2() {
+      level2Link.style.pointerEvents = "auto";
+      level2Link.style.color = "blue";
+      level2Link.style.userSelect = "auto";
+      level2Link.style.backgroundColor = "#d1eaff";
+      level2Link.textContent = "第二關（已解鎖）";
+      level2Link.tabIndex = 0;
+    }
+
+    // 儲存課程進度到 Firestore
+    async function saveCourseProgress(uid, completed) {
+      if (!uid) return;
+      const courseDocRef = doc(db, "users", uid, "courses", "course2");
+      try {
+        await setDoc(courseDocRef, {
+          completed,
+          timestamp: serverTimestamp()
+        }, { merge: true });
+        console.log("課程 course2 進度已更新");
+      } catch (error) {
+        console.error("Firestore 寫入失敗：", error);
+      }
+    }
+
+    // 啟動 DiVE 監聽器
+    function startDiveListener(uid) {
+      const diveLinker = new DiveLinker("dive");
+      diveLinker.enableBlock(false);
+      diveLinker.start();
+
+      setInterval(() => {
+        const outputList = diveLinker.outputList;
+        if (outputList && outputList[secondLevelCompleteId]) {
+          const value = outputList[secondLevelCompleteId].value;
+          console.log("DiVE 第二關完成度:", value);
+          if (value === 2) {
+            saveCourseProgress(uid, true);
+            localStorage.setItem(uid + "_course2", "true");
+            unlockLevel2();
+          }
+        }
+      }, 1000);
+    }
+
+
+
+    // 監測登入狀態並處理進度
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        alert("請先登入");
+        window.location.href = "login.html";
+        return;
+      }
+
+      // 從 localStorage 檢查是否已完成第二關
+      if (localStorage.getItem(user.uid + "_course2") === "true") {
+        unlockLevel2();
+        console.log("從 localStorage 讀取第二關進度：已完成");
+      } else {
+        // 沒有本地紀錄才去 Firestore 查詢
+        try {
+          const courseDoc = await getDoc(doc(db, "users", user.uid, "courses", "course2"));
+          if (courseDoc.exists()) {
+            const data = courseDoc.data();
+            console.log("讀取第二關課程進度:", data);
+            if (data.completed === true) {
+              unlockLevel2();
+              localStorage.setItem(user.uid + "_course2", "true");
+            }
+          }
+        } catch (e) {
+          console.error("讀取第二關課程進度失敗:", e);
+        }
+      }
+
+      startDiveListener(user.uid);
+    });
+      
+   
+  
+  </script>
+</body>
+</html>
